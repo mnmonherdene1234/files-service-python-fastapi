@@ -103,5 +103,4 @@ bin/
 .dockerignore
 docker-compose.override.yml
 
-files/
-!files/*
+/files

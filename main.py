@@ -7,8 +7,15 @@ from fastapi import FastAPI
 from fastapi import File, UploadFile
 
 from cryptography.fernet import Fernet
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
+app.mount("/files", StaticFiles(directory="files"), name="files")
+
+folder_name = "files"
+
+if not os.path.exists(folder_name):
+    os.makedirs(folder_name)
 
 
 @app.get("/")
