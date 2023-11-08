@@ -8,7 +8,6 @@ from fastapi import File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from middlewares.key_middleware import key_middleware
 from models.delete_model import DeleteModel
 
 folder_name = "./files"
@@ -16,20 +15,19 @@ if not os.path.exists(folder_name):
     os.makedirs(folder_name)
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"],
+origins = ["*", ]
+app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], )
-
 app.mount("/files", StaticFiles(directory="files"), name="files")
-app.middleware("http")(key_middleware)
 
 
 @app.get("/")
-def info():
+async def info():
     return {"message": "Files Service running!", "date": datetime.datetime.now()}
 
 
 @app.post('/upload')
-def upload(file: UploadFile = File(...)):
+async def upload(file: UploadFile = File(...)):
     random_filename = os.urandom(32).hex()
     file_extension = Path(file.filename).suffix
     filename = f"{random_filename}{file_extension}"
@@ -56,7 +54,7 @@ def upload(file: UploadFile = File(...)):
 
 
 @app.delete('/delete-file')
-def delete_file(delete: DeleteModel):
+async def delete_file(delete: DeleteModel):
     filepath = f'files/{delete.filename}'
 
     try:
