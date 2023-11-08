@@ -5,8 +5,8 @@ from pathlib import Path
 from cryptography.fernet import Fernet
 from fastapi import FastAPI
 from fastapi import File, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from starlette.middleware.cors import CORSMiddleware
 
 from middlewares.key_middleware import key_middleware
 from models.delete_model import DeleteModel
