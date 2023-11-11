@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from cryptography.fernet import Fernet
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi import File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -26,7 +26,7 @@ async def info():
     return {"message": "Files Service running!", "date": datetime.datetime.now()}
 
 
-@app.post('/upload')
+@app.post('/upload-video')
 async def upload(file: UploadFile = File(...)):
     random_filename = os.urandom(32).hex()
     file_extension = Path(file.filename).suffix
@@ -44,13 +44,33 @@ async def upload(file: UploadFile = File(...)):
         with open(filepath, 'wb') as f:
             f.write(encrypted_content)
     except Exception as error:
-        return {"message": "There was an error uploading the file", "error": str(error)}
+        raise HTTPException(status_code=500, detail=str(error))
     finally:
         file.file.close()
 
     file_size = os.path.getsize(filepath)
 
     return {"filename": filename, "key": key, "size": file_size}
+
+
+@app.post("/upload-file")
+async def upload_file(file: UploadFile = File(...)):
+    now = datetime.datetime.now()
+    filename = f"{now.strftime('%Y-%m-%d_%H-%M-%S')}_{file.filename}"
+
+    try:
+        contents = file.file.read()
+
+        with open(f"files/{filename}", "wb") as f:
+            f.write(contents)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+    finally:
+        file.file.close()
+
+    file_size = os.path.getsize(f"files/{filename}")
+
+    return {"filename": filename, "size": file_size}
 
 
 @app.delete('/delete-file')
@@ -60,6 +80,6 @@ async def delete_file(delete: DeleteModel):
     try:
         os.remove(filepath)
     except Exception as error:
-        return {"message": str(error), "filename": delete.filename}
+        raise HTTPException(status_code=500, detail=str(error))
 
     return {"message": "OK", "filename": delete.filename}
