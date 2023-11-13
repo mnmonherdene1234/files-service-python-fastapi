@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi import File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 from models.delete_model import DeleteModel
 
@@ -29,28 +30,52 @@ async def info():
 @app.post('/upload-video')
 async def upload(file: UploadFile = File(...)):
     random_filename = os.urandom(32).hex()
+    random_seven_filename = os.urandom(32).hex()
+
     file_extension = Path(file.filename).suffix
+
+    if file_extension != '.mp4':
+        raise HTTPException(status_code=500, detail="NOT_MP4_CODE")
+
     filename = f"{random_filename}{file_extension}"
     filepath = f"files/{filename}"
 
-    key = Fernet.generate_key()
-    cipher_suite = Fernet(key)
+    seven_filename = f"{random_seven_filename}{file_extension}"
+    seven_filepath = f"files/{seven_filename}"
+
+    encrypted_filename = f"{random_filename}_enc{file_extension}"
+    encrypted_filepath = f"files/{encrypted_filename}"
 
     try:
-        contents = file.file.read()
-
-        encrypted_content = cipher_suite.encrypt(contents)
-
-        with open(filepath, 'wb') as f:
-            f.write(encrypted_content)
+        with open(filepath, 'wb') as video_file:
+            video_file.write(file.file.read())
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
     finally:
         file.file.close()
 
-    file_size = os.path.getsize(filepath)
+    ffmpeg_extract_subclip(filepath, 0, 60 * 7, targetname=seven_filepath)
 
-    return {"filename": filename, "key": key, "size": file_size}
+    key = Fernet.generate_key()
+    cipher_suite = Fernet(key)
+
+    try:
+        with open(filepath, 'rb') as video_file:
+            contents = video_file.read()
+            encrypted_content = cipher_suite.encrypt(contents)
+            with open(encrypted_filepath, 'wb') as encrypted_file:
+                encrypted_file.write(encrypted_content)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    try:
+        os.remove(filepath)
+    except Exception as error:
+        raise HTTPException(status_code=500, detail=str(error))
+
+    file_size = os.path.getsize(encrypted_filepath)
+
+    return {"filename": encrypted_filename, "seven_minutes_video": seven_filename, "key": key, "size": file_size}
 
 
 @app.post("/upload-file")

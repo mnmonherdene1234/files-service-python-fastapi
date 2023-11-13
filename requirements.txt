@@ -3,3 +3,5 @@ uvicorn
 python-multipart
 cryptography
 pydantic
+moviepy
+imageio-ffmpeg
