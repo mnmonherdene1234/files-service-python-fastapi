@@ -75,7 +75,7 @@ async def upload(file: UploadFile = File(...)):
 
     file_size = os.path.getsize(encrypted_filepath)
 
-    return {"filename": encrypted_filename, "seven_minutes_video": seven_filename, "key": key, "size": file_size}
+    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key": key, "size": file_size}
 
 
 @app.post("/upload-file")
