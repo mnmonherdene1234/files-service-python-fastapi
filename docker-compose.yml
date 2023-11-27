@@ -9,5 +9,3 @@ services:
       - "7798:8000"
     volumes:
       - .:/app
-    deploy:
-      replicas: 3
