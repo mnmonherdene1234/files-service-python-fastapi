@@ -2,7 +2,6 @@ import datetime
 import os
 from pathlib import Path
 
-from cryptography.fernet import Fernet
 from fastapi import FastAPI, HTTPException
 from fastapi import File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -46,6 +45,7 @@ async def upload(file: UploadFile = File(...)):
     encrypted_filename = f"{random_filename}_enc{file_extension}"
     encrypted_filepath = f"files/{encrypted_filename}"
 
+    # Save the original video to disk
     try:
         with open(filepath, 'wb') as video_file:
             video_file.write(file.file.read())
@@ -54,20 +54,33 @@ async def upload(file: UploadFile = File(...)):
     finally:
         file.file.close()
 
+    # Save first seven minutes
     ffmpeg_extract_subclip(filepath, 0, 60 * 7, targetname=seven_filepath)
 
-    key = Fernet.generate_key()
-    cipher_suite = Fernet(key)
+    # Generate key
+    key_length = 32
+    key = os.urandom(key_length)
 
+    # Byte encryption the file
     try:
         with open(filepath, 'rb') as video_file:
-            contents = video_file.read()
-            encrypted_content = cipher_suite.encrypt(contents)
             with open(encrypted_filepath, 'wb') as encrypted_file:
-                encrypted_file.write(encrypted_content)
+                index = 0
+                while True:
+                    video_byte = video_file.read(1)
+
+                    if not video_byte:
+                        break
+
+                    encrypted_int = video_byte[0] ^ key[index % key_length]
+                    encrypted_byte = encrypted_int.to_bytes()
+                    index += 1
+
+                    encrypted_file.write(encrypted_byte)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
+    # Remove the original video from disk
     try:
         os.remove(filepath)
     except Exception as error:
@@ -75,7 +88,8 @@ async def upload(file: UploadFile = File(...)):
 
     file_size = os.path.getsize(encrypted_filepath)
 
-    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key": key, "size": file_size}
+    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key": key.hex(),
+            "size": file_size}
 
 
 @app.post("/upload-file")
