@@ -23,7 +23,7 @@ app.mount("/files", StaticFiles(directory="files"), name="files")
 
 @app.get("/")
 async def info():
-    return {"message": "Files Service running!", "date": datetime.datetime.now()}
+    return {"message": "Files Service running", "date": datetime.datetime.now()}
 
 
 @app.post('/upload-video')
