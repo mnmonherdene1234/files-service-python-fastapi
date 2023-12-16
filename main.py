@@ -58,7 +58,7 @@ async def upload(file: UploadFile = File(...)):
     ffmpeg_extract_subclip(filepath, 0, 60 * 7, targetname=seven_filepath)
 
     # Generate key
-    key_length = 32
+    key_length = 16384
     key = os.urandom(key_length)
 
     # Byte encryption the file
