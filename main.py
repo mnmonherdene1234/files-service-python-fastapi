@@ -67,6 +67,7 @@ async def upload_video(file: UploadFile = File(...)):
     # Generate key_bytes
     key_length = 16384
     key_bytes = os.urandom(key_length)
+    key_hex = key_bytes.hex()
 
     # Byte encryption the file
     try:
@@ -89,7 +90,7 @@ async def upload_video(file: UploadFile = File(...)):
 
     file_size = os.path.getsize(encrypted_filepath)
 
-    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key_bytes": key_bytes.hex(),
+    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key_bytes": key_hex,
             "size": file_size}
 
 
