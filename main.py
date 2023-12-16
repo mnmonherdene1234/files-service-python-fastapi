@@ -2,22 +2,25 @@ import datetime
 import os
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
-from fastapi import File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from moviepy.video.io.ffmpeg_tools import ffmpeg_extract_subclip
 
 from models.delete_model import DeleteModel
 
+# Create the folder if it doesn't exist
 folder_name = "./files"
-if not os.path.exists(folder_name):
-    os.makedirs(folder_name)
+os.makedirs(folder_name, exist_ok=True)
 
 app = FastAPI()
-origins = ["*", ]
+
+# Configure CORS
+origins = ["*"]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_credentials=True, allow_methods=["*"],
                    allow_headers=["*"], )
+
+# Mount the static files directory
 app.mount("/files", StaticFiles(directory="files"), name="files")
 
 
@@ -27,15 +30,19 @@ async def info():
 
 
 @app.post('/upload-video')
-async def upload(file: UploadFile = File(...)):
+async def upload_video(file: UploadFile = File(...)):
+    # Generate random filenames
     random_filename = os.urandom(32).hex()
     random_seven_filename = os.urandom(32).hex()
 
+    # Get the file extension
     file_extension = Path(file.filename).suffix
 
+    # Check if the file is a mp4
     if file_extension != '.mp4':
         raise HTTPException(status_code=500, detail="NOT_MP4_CODE")
 
+    # Create the filenames and filepaths
     filename = f"{random_filename}{file_extension}"
     filepath = f"files/{filename}"
 
@@ -54,29 +61,23 @@ async def upload(file: UploadFile = File(...)):
     finally:
         file.file.close()
 
-    # Save first seven minutes
+    # Save the first seven minutes of the video
     ffmpeg_extract_subclip(filepath, 0, 60 * 7, targetname=seven_filepath)
 
-    # Generate key
+    # Generate key_bytes
     key_length = 16384
-    key = os.urandom(key_length)
+    key_bytes = os.urandom(key_length)
 
     # Byte encryption the file
     try:
         with open(filepath, 'rb') as video_file:
             with open(encrypted_filepath, 'wb') as encrypted_file:
-                index = 0
                 while True:
-                    video_byte = video_file.read(1)
-
-                    if not video_byte:
+                    buffer = video_file.read(key_length)
+                    if not buffer:
                         break
-
-                    encrypted_int = video_byte[0] ^ key[index % key_length]
-                    encrypted_byte = encrypted_int.to_bytes()
-                    index += 1
-
-                    encrypted_file.write(encrypted_byte)
+                    encrypted_data = bytes(b ^ key_bytes[i % key_length] for i, b in enumerate(buffer))
+                    encrypted_file.write(encrypted_data)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
@@ -88,7 +89,7 @@ async def upload(file: UploadFile = File(...)):
 
     file_size = os.path.getsize(encrypted_filepath)
 
-    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key": key.hex(),
+    return {"filename": encrypted_filename, "seven_minutes_filename": seven_filename, "key_bytes": key_bytes.hex(),
             "size": file_size}
 
 
