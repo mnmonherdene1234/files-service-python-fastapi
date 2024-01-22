@@ -1,5 +1,6 @@
 import datetime
 import os
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -29,22 +30,25 @@ async def info():
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
-    now = datetime.datetime.now()
-    filename = f"{now.strftime('%Y_%m_%d_%H_%M_%S')}_{file.filename.replace(' ', '_')}"
-
     try:
-        contents = file.file.read()
+        # Generate a unique filename using a UUID
+        filename = f"{uuid4()}_{file.filename.replace(' ', '_')}"
 
+        # Write the file to disk using a with-statement to automatically close it
         with open(f"files/{filename}", "wb") as f:
-            f.write(contents)
+            while contents := await file.read(1024 * 1024):  # Use 'await' to read the file asynchronously
+                f.write(contents)
+
+        # Return the filename and size
+        return {"filename": filename, "size": file.size}
+
     except Exception as error:
-        raise HTTPException(status_code=500, detail=str(error))
-    finally:
-        file.file.close()
+        # Log the error before raising the exception
+        import logging
+        logging.exception(error)
 
-    file_size = os.path.getsize(f"files/{filename}")
-
-    return {"filename": filename, "size": file.size}
+        # Raise a custom HTTPException
+        raise HTTPException(status_code=500, detail="An error occurred while processing the file.")
 
 
 @app.delete('/delete')
