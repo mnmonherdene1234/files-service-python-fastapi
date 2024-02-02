@@ -32,6 +32,8 @@ docker build -t video-security-files-service .
 
 ### Docker compose run
 
+Default port is 7798
+
 ```bash
 ./deploy.sh
 ```

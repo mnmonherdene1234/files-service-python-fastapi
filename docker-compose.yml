@@ -1,27 +1,10 @@
 version: '3.9'
 
 services:
-  files_service_1:
+  fs:
     build:
       context: .
-      dockerfile: Dockerfile
     ports:
       - "7798:8000"
-    volumes:
-      - .:/app
-  files_service_2:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "7799:8000"
-    volumes:
-      - .:/app
-  files_service_3:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "7800:8000"
     volumes:
       - .:/app
