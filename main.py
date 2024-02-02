@@ -1,4 +1,5 @@
 import datetime
+import logging
 import os
 from uuid import uuid4
 
@@ -12,6 +13,7 @@ from models.delete_model import DeleteModel
 folder_name = "./files"
 os.makedirs(folder_name, exist_ok=True)
 
+# Create the FastAPI app
 app = FastAPI()
 
 # Configure CORS
@@ -25,18 +27,30 @@ app.mount("/files", StaticFiles(directory="files"), name="files")
 
 @app.get("/")
 async def info():
+    """
+    Returns the current date and time
+    @return:
+    """
     return {"message": "Files Service running", "date": datetime.datetime.now()}
 
 
 @app.post("/upload")
 async def upload_file(file: UploadFile = File(...)):
+    """
+    Uploads a file to the server
+    @param file:
+    @return:
+    """
     try:
-        # Generate a unique filename using a UUID
-        filename = f"{uuid4()}_{file.filename.replace(' ', '_')}"
+        # Get the file extension
+        extension = file.filename.split('.')[-1]
+
+        # Generate a random filename
+        filename = f"{uuid4()}.{extension}"
 
         # Write the file to disk using a with-statement to automatically close it
         with open(f"files/{filename}", "wb") as f:
-            while contents := await file.read(1024 * 1024):  # Use 'await' to read the file asynchronously
+            while contents := await file.read(1024 * 1024):
                 f.write(contents)
 
         # Return the filename and size
@@ -44,7 +58,6 @@ async def upload_file(file: UploadFile = File(...)):
 
     except Exception as error:
         # Log the error before raising the exception
-        import logging
         logging.exception(error)
 
         # Raise a custom HTTPException
@@ -53,11 +66,23 @@ async def upload_file(file: UploadFile = File(...)):
 
 @app.delete('/delete')
 async def delete_file(delete: DeleteModel):
+    """
+    Deletes a file from the server
+    @param delete:
+    @return:
+    """
+    # Get the file path
     filepath = f'files/{delete.filename}'
 
+    # Check if the file exists
+    if not os.path.exists(filepath):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    # Try to delete the file
     try:
         os.remove(filepath)
     except Exception as error:
         raise HTTPException(status_code=500, detail=str(error))
 
+    # Return a success message
     return {"message": "OK", "filename": delete.filename}
