@@ -10,9 +10,8 @@ fastapi link: https://fastapi.tiangolo.com/
 pip install -r requirements.txt
 ```
 
-### Development run
-
 ## How to run
+### Development run
 
 ```bash
 uvicorn main:app --reload
