@@ -7,4 +7,4 @@ services:
     volumes:
       - .:/app
     environment:
-        - API_KEY=HelloWorld314
+        - API_KEY=2c2fc41e-abc2-4fd8-bae3-f647bab1f179
