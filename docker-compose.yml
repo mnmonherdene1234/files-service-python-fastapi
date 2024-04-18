@@ -4,6 +4,7 @@ services:
       context: .
     ports:
       - "7798:8000"
+    restart: always
     volumes:
       - .:/app
     environment:
