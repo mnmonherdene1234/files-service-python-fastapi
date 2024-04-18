@@ -3,7 +3,7 @@ services:
     build:
       context: .
     ports:
-      - "7798:8000"
+      - "7898:8000"
     restart: always
     volumes:
       - .:/app
